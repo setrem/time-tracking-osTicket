@@ -3,7 +3,7 @@ Simple time tracking for osTicket. The customizations were only tested on versio
 
 # How to use
 
-## Run the SQLs
+## Execute the SQLs
 
 In table `ost_ticket_time_tracking` will be saved the hours spend on each ticket/task.
 
