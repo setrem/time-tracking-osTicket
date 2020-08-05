@@ -1,5 +1,7 @@
 # Time Tracking osTicket
-Simple time tracking for osTicket. The customizations were only tested on version 1.12 of osTicket.
+
+Simple time tracking for osTicket. The customizations were tested on osTicket version v1.14.2.
+
 
 # How to use
 
@@ -22,6 +24,7 @@ CREATE TABLE ost_ticket_time_tracking (
 ```
 
 In table `ost_staff_shifts` will be saved the shifts of each staff.
+
 ```sql
 CREATE TABLE ost_staff_shifts (
 	staff_id INT(10) UNSIGNED NOT NULL,
@@ -34,14 +37,15 @@ CREATE TABLE ost_staff_shifts (
 );
 ```
 
+
 ## Change osTicket files
 
-All changes made to the code are in the [osTicket](/osTicket) folder. The folder follows the same structure as the osTicket version 1.12 released [here](https://github.com/osTicket/osTicket/releases/tag/v1.12).
+All changes made to the code are in the [osTicket](/osTicket) folder. The folder follows the same structure as the osTicket version v1.14.2 released [here](https://github.com/osTicket/osTicket/releases/tag/v1.14.2).
 
 All changes made were placed between the `// CHANGED!` mark in PHP and JS files, and between `<!-- CHANGED! -->` in HTML.
 
-# To Do
-- Show the ticket/task with active time tracking.
+
+# To do
 - Report of hours spend on each ticket/task.
 - Report of hours tracked by each `staff_id`.
 - Change the table `ost_staff_shifts` to support different shifts on each day of the week.
