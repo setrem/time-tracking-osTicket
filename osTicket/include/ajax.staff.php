@@ -23,6 +23,98 @@ class StaffAjaxAPI extends AjaxController {
         }
         return $this->encode($response);
     }
+    
+    function getTimeTrackingStaffs() {
+        global $ost, $thisstaff;
+        
+        if (!$thisstaff)
+            Http::response(403, 'Agent login required');
+
+        // global $thisstaff;
+        $sql = "SELECT CONCAT(ost_staff.firstname, ' ', ost_staff.lastname) name,
+                ost_ticket_time_tracking.ticket_id, ost_ticket__cdata.subject, ost_ticket_time_tracking.task_id, ost_task__cdata.title, ost_ticket_time_tracking.start_time
+                FROM ost_ticket_time_tracking
+                INNER JOIN ost_staff ON (ost_staff.staff_id = ost_ticket_time_tracking.staff_id)
+                INNER JOIN ost_ticket__cdata ON (ost_ticket__cdata.ticket_id = ost_ticket_time_tracking.ticket_id)
+                LEFT OUTER JOIN ost_task__cdata ON (ost_task__cdata.task_id = ost_ticket_time_tracking.task_id)
+                WHERE end_time IS NULL";
+        $result = db_query($sql);
+        $rows = array();
+        while ($ht = db_fetch_array($result)) {
+            $row = array();
+            $row['staff'] = $ht['name'];
+            $row['ticket_id'] = $ht['ticket_id'];
+            $row['ticket_title'] = $ht['subject'];
+            $row['task_id'] = $ht['task_id'];
+            $row['task_title'] = $ht['title'];
+            $row['start_time'] = $ht['start_time'];
+            $rows[] = $row;
+        }
+        return $this->encode($rows);
+    }
+
+    function getTicketTimeTrackingDay($date) {
+        global $ost, $thisstaff;
+        
+        if (!$thisstaff)
+            Http::response(403, 'Agent login required');
+        if (!$thisstaff->isAdmin())
+            Http::response(403, 'Access denied');
+
+        $date = db_input($date);
+        $sql = '
+            SELECT ost_ticket.ticket_id, ost_staff.username user_time_tracking, ost_ticket.number number_ticket, ost_task.id task_id,
+	    SUM(TIMESTAMPDIFF(MINUTE, ost_ticket_time_tracking.start_time, ost_ticket_time_tracking.end_time)) minutes
+            FROM ost_ticket
+            LEFT OUTER JOIN ost_ticket_time_tracking ON (ost_ticket.ticket_id = ost_ticket_time_tracking.ticket_id)
+            LEFT OUTER JOIN ost_staff ON (ost_staff.staff_id = ost_ticket_time_tracking.staff_id)
+            LEFT OUTER JOIN ost_task ON (ost_task.id = ost_ticket_time_tracking.task_id)
+            WHERE (ost_ticket.status_id IN (2, 3) OR ost_task.flags = 0) AND (DATE(ost_task.closed) = DATE('.$date.') OR DATE(ost_ticket.closed) = DATE('.$date.'))
+	    GROUP BY ost_ticket.ticket_id, ost_staff.username, ost_ticket.number, ost_task.id
+        ';
+        $result = db_query($sql);
+        $table = '<style>
+        table {
+	  font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+          border-collapse: collapse;
+          width: 100%;
+        }
+        
+        table td, table th {
+          border: 1px solid #ddd;
+          padding: 8px;
+        }
+        
+        table tr:nth-child(even){background-color: #f2f2f2;}
+        
+        table tr:hover {background-color: #ddd;}
+        
+        table th {
+          padding-top: 12px;
+          padding-bottom: 12px;
+          text-align: left;
+          background-color: #4CAF50;
+          color: white;
+        }
+        </style>';
+        $table .= '<table>';
+        $table .= '<tr>';
+        $table .= '<td>user_time_tracking</td>';
+        $table .= '<td>number_ticket</td>';
+        $table .= '<td>task_id</td>';
+        $table .= '<td>minutes</td>';
+        $table .= '</tr>';
+        while ($ht = db_fetch_array($result)) {
+            $table .= '<tr>';
+            $table .= '<td>'.$ht['user_time_tracking'].'</td>';
+            $table .= '<td><a target="_blank" href="/scp/tickets.php?id='.$ht['ticket_id'].'">'.$ht['number_ticket'].'</a></td>';
+            $table .= '<td><a target="_blank" href="/scp/tasks.php?id='.$ht['task_id'].'">'.$ht['task_id'].'</a></td>';
+            $table .= '<td>'.$ht['minutes'].'</td>';
+            $table .= '</tr>';
+        }
+        $table .= '</table>';
+        return $table;
+    }
     // CHANGED!
 
   /**
