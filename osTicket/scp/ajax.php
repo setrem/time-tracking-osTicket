@@ -25,8 +25,8 @@ define('AJAX_REQUEST', 1);
 require('staff.inc.php');
 
 //Clean house...don't let the world see your crap.
-ini_set('display_errors', '0'); // Set by installer
-ini_set('display_startup_errors', '0'); // Set by installer
+ini_set('display_errors','0'); //Disable error display
+ini_set('display_startup_errors','0');
 
 //TODO: disable direct access via the browser? i,e All request must have REFER?
 if(!defined('INCLUDE_DIR'))	Http::response(500, 'Server configuration error');
@@ -65,6 +65,14 @@ $dispatcher = patterns('',
     )),
     url('^/filter/', patterns('ajax.filter.php:FilterAjaxAPI',
         url_get('^action/(?P<type>\w+)/config$', 'getFilterActionForm')
+    )),
+    url('^/schedule/', patterns('ajax.schedule.php:ScheduleAjaxAPI',
+       url('^add$', 'add'),
+       url('^(?P<id>\d+)/clone$', 'cloneSchedule'),
+       url('^(?P<id>\d+)/diagnostic$', 'diagnostic'),
+       url_post('^(?P<id>\d+)/delete-entries$', 'deleteEntries'),
+       url('^(?P<id>\d+)/entry/add$', 'addEntry'),
+       url('^(?P<sid>\d+)/entry/(?P<eid>\d+)/update$', 'updateEntry')
     )),
     url('^/list/', patterns('ajax.forms.php:DynamicFormsAjaxAPI',
         url_get('^(?P<list>\w+)/items$', 'getListItems'),
@@ -113,7 +121,8 @@ $dispatcher = patterns('',
         url_get('^/staff$', 'searchStaff'),
         url_post('^/(?P<id>\d+)/note$', 'createNote'),
         url_get('^/(?P<id>\d+)/forms/manage$', 'manageForms'),
-        url_post('^/(?P<id>\d+)/forms/manage$', 'updateForms')
+        url_post('^/(?P<id>\d+)/forms/manage$', 'updateForms'),
+        url('^/(?P<id>\d+)/tickets/export$', 'exportTickets')
     )),
     url('^/orgs', patterns('ajax.orgs.php:OrgsAjaxAPI',
         url_get('^$', 'search'),
@@ -121,6 +130,7 @@ $dispatcher = patterns('',
         url_get('^/(?P<id>\d+)$', 'getOrg'),
         url_post('^/(?P<id>\d+)$', 'updateOrg'),
         url_post('^/(?P<id>\d+)/profile$', 'updateOrg', array(true)),
+        url('^/(?P<id>\d+)/tickets/export$', 'exportTickets'),
         url_get('^/(?P<id>\d+)/edit$', 'editOrg'),
         url_get('^/lookup/form$', 'lookup'),
         url_post('^/lookup$', 'lookup'),
@@ -151,6 +161,12 @@ $dispatcher = patterns('',
         url_get('^(?P<tid>\d+)/preview', 'previewTicket'),
         url_get('^(?P<tid>\d+)/forms/manage$', 'manageForms'),
         url_post('^(?P<tid>\d+)/forms/manage$', 'updateForms'),
+        url_get('^(?P<tid>\d+)/merge$', 'mergeTickets'),
+        url_post('^(?P<tid>\d+)/merge$', 'updateMerge'),
+        url_get('^(?P<tid>\d+)/link', 'mergeTickets'),
+        url_post('^(?P<tid>\d+)/link', 'updateMerge'),
+        url_get('^(?P<tid>\d+)/merge/preview$', 'previewMerge'),
+        url_get('^(?P<tid>\d+)/relations', 'relations'),
         url_get('^(?P<tid>\d+)/canned-resp/(?P<cid>\w+).(?P<format>json|txt)', 'cannedResponse'),
         url_get('^(?P<tid>\d+)/status/(?P<status>\w+)(?:/(?P<sid>\d+))?$', 'changeTicketStatus'),
         url_post('^(?P<tid>\d+)/status$', 'setTicketStatus'),
@@ -162,6 +178,7 @@ $dispatcher = patterns('',
         url_get('^(?P<tid>\d+)/tasks/(?P<id>\d+)/view$', 'task'),
         url_post('^(?P<tid>\d+)/tasks/(?P<id>\d+)$', 'task'),
         url_get('^lookup', 'lookup'),
+        url_get('^number-lookup', 'lookupByNumber'),
         url('^mass/(?P<action>\w+)(?:/(?P<what>\w+))?', 'massProcess'),
         url('^(?P<tid>\d+)/transfer$', 'transfer'),
         url('^(?P<tid>\d+)/field/(?P<fid>\d+)/edit$', 'editField'),
@@ -195,6 +212,8 @@ $dispatcher = patterns('',
         url_get('^(?P<tid>\d+)/preview$', 'preview'),
         url_get('^(?P<tid>\d+)/edit', 'edit'),
         url_post('^(?P<tid>\d+)/edit$', 'edit'),
+        url('^(?P<tid>\d+)/field/(?P<fid>\d+)/edit$', 'editField'),
+        url('^(?P<tid>\d+)/field/(?P<field>\w+)/edit$', 'editField'),
         url_get('^(?P<tid>\d+)/transfer', 'transfer'),
         url_post('^(?P<tid>\d+)/transfer$', 'transfer'),
         url('^(?P<tid>\d+)/assign(?:/(?P<to>\w+))?$', 'assign'),
@@ -212,11 +231,11 @@ $dispatcher = patterns('',
         url('^mass/(?P<action>\w+)(?:/(?P<what>\w+))?', 'massProcess')
     )),
     url('^/thread/', patterns('ajax.thread.php:ThreadAjaxAPI',
-        url_get('^(?P<tid>\d+)/collaborators/preview$', 'previewCollaborators'),
-        url_get('^(?P<tid>\d+)/collaborators$', 'showCollaborators'),
+        url_get('^(?P<tid>\d+)/collaborators/(?P<manage>\d+)/preview$', 'previewCollaborators'),
+        url_get('^(?P<tid>\d+)/collaborators/(?P<manage>\d+)$', 'showCollaborators'),
         url_post('^(?P<tid>\d+)/collaborators$', 'updateCollaborators'),
         url_get('^(?P<tid>\d+)/add-collaborator/(?P<type>\w+)/(?P<uid>\d+)$', 'addCollaborator'),
-        url_get('^(?P<tid>\d+)/add-collaborator/auth:(?P<bk>\w+):(?P<id>.+)$', 'addRemoteCollaborator'),
+        url_get('^(?P<tid>\d+)/add-collaborator/(?P<type>\w+)/auth:(?P<bk>\w+):(?P<id>.+)$', 'addRemoteCollaborator'),
         url('^(?P<tid>\d+)/add-collaborator/(?P<type>\w+)$', 'addCollaborator'),
         url_get('^(?P<tid>\d+)/collaborators/(?P<cid>\d+)/view$', 'viewCollaborator'),
         url_post('^(?P<tid>\d+)/collaborators/(?P<cid>\d+)$', 'updateCollaborator')
@@ -229,6 +248,9 @@ $dispatcher = patterns('',
         url_get('^(?P<namespace>[\w.]+)$', 'getDraft'),
         url_post('^(?P<namespace>[\w.]+)$', 'createDraft'),
         url_get('^images/browse$', 'getFileList')
+    )),
+    url('^/export/', patterns('ajax.export.php:ExportAjaxAPI',
+        url('^(?P<id>\w+)/check$', 'check')
     )),
     url('^/note/', patterns('ajax.note.php:NoteAjaxAPI',
         url_get('^(?P<id>\d+)$', 'getNote'),
