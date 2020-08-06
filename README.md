@@ -49,3 +49,4 @@ All changes made were placed between the `// CHANGED!` mark in PHP and JS files,
 - Report of hours spend on each ticket/task.
 - Report of hours tracked by each `staff_id`.
 - Change the table `ost_staff_shifts` to support different shifts on each day of the week.
+- Create script to install the plugin.
