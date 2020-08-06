@@ -294,6 +294,8 @@ $dispatcher = patterns('',
         url('^/change-department', 'changeDepartment'),
         // CHANGED!
         url_get('^/alert-time-tracking-shift', 'alertTimeTrackingShift'),
+	    url_get('^/time-tracking-staffs', 'getTimeTrackingStaffs'),
+        url_get('^/ticket-time-tracking/(?P<date>[\w-]+)', 'getTicketTimeTrackingDay'),
         // CHANGED!
         url('^/(?P<id>\d+)/avatar/change', 'setAvatar')
     )),
