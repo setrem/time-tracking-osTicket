@@ -31,12 +31,19 @@ class StaffAjaxAPI extends AjaxController {
             Http::response(403, 'Agent login required');
 
         // global $thisstaff;
-        $sql = "SELECT CONCAT(ost_staff.firstname, ' ', ost_staff.lastname) name,
+        /*$sql = "SELECT CONCAT(ost_staff.firstname, ' ', ost_staff.lastname) name,
                 ost_ticket_time_tracking.ticket_id, ost_ticket__cdata.subject, ost_ticket_time_tracking.task_id, ost_task__cdata.title, ost_ticket_time_tracking.start_time
                 FROM ost_ticket_time_tracking
                 INNER JOIN ost_staff ON (ost_staff.staff_id = ost_ticket_time_tracking.staff_id)
                 INNER JOIN ost_ticket__cdata ON (ost_ticket__cdata.ticket_id = ost_ticket_time_tracking.ticket_id)
                 LEFT OUTER JOIN ost_task__cdata ON (ost_task__cdata.task_id = ost_ticket_time_tracking.task_id)
+                WHERE end_time IS NULL";*/
+	$sql = "SELECT CONCAT(".STAFF_TABLE.".firstname, ' ', ".STAFF_TABLE.".lastname) name,
+                ".TICKET_TIME_TRACKING_TABLE.".ticket_id, ".TICKET_CDATA_TABLE.".subject, ".TICKET_TIME_TRACKING_TABLE.".task_id, ".TASK_CDATA_TABLE.".title, ".TICKET_TIME_TRACKING_TABLE.".start_time
+                FROM ".TICKET_TIME_TRACKING_TABLE."
+                INNER JOIN ".STAFF_TABLE." ON (".STAFF_TABLE.".staff_id = ".TICKET_TIME_TRACKING_TABLE.".staff_id)
+                INNER JOIN ".TICKET_CDATA_TABLE." ON (".TICKET_CDATA_TABLE.".ticket_id = ".TICKET_TIME_TRACKING_TABLE.".ticket_id)
+                LEFT OUTER JOIN ".TASK_CDATA_TABLE." ON (".TASK_CDATA_TABLE.".task_id = ".TICKET_TIME_TRACKING_TABLE.".task_id)
                 WHERE end_time IS NULL";
         $result = db_query($sql);
         $rows = array();
@@ -62,7 +69,7 @@ class StaffAjaxAPI extends AjaxController {
             Http::response(403, 'Access denied');
 
         $date = db_input($date);
-        $sql = '
+        /*$sql = '
             SELECT ost_ticket.ticket_id, ost_staff.username user_time_tracking, ost_ticket.number number_ticket, ost_task.id task_id,
 	    SUM(TIMESTAMPDIFF(MINUTE, ost_ticket_time_tracking.start_time, ost_ticket_time_tracking.end_time)) minutes
             FROM ost_ticket
@@ -71,6 +78,16 @@ class StaffAjaxAPI extends AjaxController {
             LEFT OUTER JOIN ost_task ON (ost_task.id = ost_ticket_time_tracking.task_id)
             WHERE (ost_ticket.status_id IN (2, 3) OR ost_task.flags = 0) AND (DATE(ost_task.closed) = DATE('.$date.') OR DATE(ost_ticket.closed) = DATE('.$date.'))
 	    GROUP BY ost_ticket.ticket_id, ost_staff.username, ost_ticket.number, ost_task.id
+        ';*/
+	 $sql = '
+            SELECT '.TICKET_TABLE.'.ticket_id, '.STAFF_TABLE.'.username user_time_tracking, '.TICKET_TABLE.'.number number_ticket, '.TASK_TABLE.'.id task_id,
+	    SUM(TIMESTAMPDIFF(MINUTE, '.TICKET_TIME_TRACKING_TABLE.'.start_time, '.TICKET_TIME_TRACKING_TABLE.'.end_time)) minutes
+            FROM '.TICKET_TABLE.'
+            LEFT OUTER JOIN '.TICKET_TIME_TRACKING_TABLE.' ON ('.TICKET_TABLE.'.ticket_id = '.TICKET_TIME_TRACKING_TABLE.'.ticket_id)
+            LEFT OUTER JOIN '.STAFF_TABLE.' ON ('.STAFF_TABLE.'.staff_id = '.TICKET_TIME_TRACKING_TABLE.'.staff_id)
+            LEFT OUTER JOIN '.TASK_TABLE.' ON ('.TASK_TABLE.'.id = '.TICKET_TIME_TRACKING_TABLE.'.task_id)
+            WHERE ('.TICKET_TABLE.'.status_id IN (2, 3) OR '.TASK_TABLE.'.flags = 0) AND (DATE('.TASK_TABLE.'.closed) = DATE('.$date.') OR DATE('.TICKET_TABLE.'.closed) = DATE('.$date.'))
+	    GROUP BY '.TICKET_TABLE.'.ticket_id, '.STAFF_TABLE.'.username, '.TICKET_TABLE.'.number, '.TASK_TABLE.'.id
         ';
         $result = db_query($sql);
         $table = '<style>
